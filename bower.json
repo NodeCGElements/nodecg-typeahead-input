@@ -1,19 +1,19 @@
 {
-  "name": "paper-typeahead-input",
+  "name": "nodecg-typeahead-input",
   "version": "1.3.3",
   "authors": [
     "Tianxiang Zhang <cenhiangapply@gmail.com>"
   ],
-  "description": "paper-typeahead-input is an element providing typeahead feature for input.",
+  "description": "nodecg-typeahead-input is an element providing typeahead feature for input.",
   "keywords": [
     "web-component",
     "web-components",
     "polymer",
     "seed"
   ],
-  "main": "paper-typeahead-input.html",
+  "main": "nodecg-typeahead-input.html",
   "license": "http://polymer.github.io/LICENSE.txt",
-  "homepage": "https://github.com/cheonhyangzhang/paper-typeahead-input/",
+  "homepage": "https://github.com/NodeCGElements/nodecg-typeahead-input/",
   "ignore": [
     "/.*",
     "/test/",

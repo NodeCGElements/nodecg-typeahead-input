@@ -15,13 +15,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../paper-material/paper-material.html">
 
 <!--
-paper-typeahead-input is an element providing typeahead feature for input.
+nodecg-typeahead-input is an element providing typeahead feature for input.
 
-Basic use of paper-typeahead-input. Use a predefined list of suggestions.
+Basic use of nodecg-typeahead-input. Use a predefined list of suggestions.
 
-    <paper-typeahead-input label="US states" local-candidates="{{states}}"
+    <nodecg-typeahead-input label="US states" local-candidates="{{states}}"
      placeholder="Please enter value" max-suggestions="4">
-    </paper-typeahead-input>
+    </nodecg-typeahead-input>
 
 For now, there are three types of sources for suggetions. localCandidates, prefetchUrl, and remoteUrl. The candidates combined from these three ways becomes the potential candidates for input.
 
@@ -30,15 +30,15 @@ For now, there are three types of sources for suggetions. localCandidates, prefe
 
 Install with bower
 
-    bower install paper-typeahead-input
+    bower install nodecg-typeahead-input
 
 If you want to save it in bower.json file, remember to add flag --save
 
-    bower install --save paper-typeahead-input
+    bower install --save nodecg-typeahead-input
 
 @demo
 -->
-<dom-module id="paper-typeahead-input">
+<dom-module id="nodecg-typeahead-input">
 
   <style>
     :host {
@@ -109,7 +109,7 @@ If you want to save it in bower.json file, remember to add flag --save
 
   Polymer({
 
-    is: 'paper-typeahead-input',
+    is: 'nodecg-typeahead-input',
     /**
      * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
      *
@@ -268,7 +268,7 @@ If you want to save it in bower.json file, remember to add flag --save
       // This is the point where you should make modifications to the DOM (when
       // necessary), or kick off any processes the element wants to perform.
       document.addEventListener("click", function(){
-        var ptinputs = document.querySelectorAll('paper-typeahead-input')
+        var ptinputs = document.querySelectorAll('nodecg-typeahead-input')
         for (var i = 0; i < ptinputs.length; i ++){
           var ptinput = ptinputs[i];
           ptinput._suggestions = [];
