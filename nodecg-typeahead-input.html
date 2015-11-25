@@ -167,7 +167,8 @@ If you want to save it in bower.json file, remember to add flag --save
             },
 
             /**
-             * Url for a prefectched list in json format for the list of suggestion candidates. The response should be something like: ["a","b"]
+             * Url for a prefectched list in json format for the list of suggestion candidates.
+             * The response should be something like: ["a","b"]
              */
             prefetchUrl: String,
 
@@ -196,15 +197,18 @@ If you want to save it in bower.json file, remember to add flag --save
             },
 
             /**
-             * Remote url to perform a search using the value in the input. The input value will be passed in as url parameter. The placeholder should be %QUERY.
+             * Remote url to perform a search using the value in the input.
+             * The input value will be passed in as url parameter. The placeholder should be %QUERY.
              */
             remoteUrl: String,
 
             /**
              * Number of milliseconds to wait after user types a character.
-             * This is helpful to reduce number of calls to remoteUrl based on performance consideration if it's set up properly based on how fast user usually types.
-             * Default is undefined which means the search request to remoteUrl will be fired immediately after user types a character.
-             * This propery only makes sense if remoteUrl is set up.
+             * This is helpful to reduce number of calls to remoteUrl based on performance consideration if it's
+             * set up properly based on how fast user usually types.
+             *
+             * Default is undefined which means the search request to remoteUrl will be fired immediately
+             * after user types a character. This propery only makes sense if remoteUrl is set up.
              */
             remoteUrlWaitMs: {
                 type: Number,
