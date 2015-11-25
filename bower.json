@@ -2,7 +2,8 @@
   "name": "nodecg-typeahead-input",
   "version": "1.3.3",
   "authors": [
-    "Tianxiang Zhang <cenhiangapply@gmail.com>"
+    "Tianxiang Zhang <cenhiangapply@gmail.com>",
+    "Alex Van Camp <email@alexvan.camp>"
   ],
   "description": "nodecg-typeahead-input is an element providing typeahead feature for input.",
   "keywords": [
@@ -12,7 +13,7 @@
     "seed"
   ],
   "main": "nodecg-typeahead-input.html",
-  "license": "http://polymer.github.io/LICENSE.txt",
+  "license": "MIT",
   "homepage": "https://github.com/NodeCGElements/nodecg-typeahead-input/",
   "ignore": [
     "/.*",
@@ -21,12 +22,12 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#^1.0.0",
-    "paper-input": "PolymerElements/paper-input#~1.0.5",
-    "paper-menu": "PolymerElements/paper-menu#~1.0.0",
-    "paper-item": "PolymerElements/paper-item#~1.0.1"
+    "paper-input": "PolymerElements/paper-input#^1.0.5",
+    "paper-menu": "PolymerElements/paper-menu#^1.0.0",
+    "paper-item": "PolymerElements/paper-item#^1.0.1",
+    "iron-ajax": "PolymerElements/iron-ajax#^1.1.1"
   },
   "devDependencies": {
-    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
-    "web-component-tester": "*"
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0"
   }
 }
