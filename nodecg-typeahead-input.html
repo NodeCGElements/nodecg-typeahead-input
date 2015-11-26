@@ -91,6 +91,7 @@ If you want to save it in bower.json file, remember to add flag --save
     if (!iframe) {
         iframe = document.createElement('iframe');
         iframe.id = 'nodecg-typeahead-suggestions';
+        iframe.height = 400;
 
         // Yeah, I can't justify this. It's stupid as hell. You got me.
         iframe.src = window.location.pathname.split('/').slice(0, 3).join('/')
