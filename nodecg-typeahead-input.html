@@ -323,8 +323,11 @@ If you want to save it in bower.json file, remember to add flag --save
                     var y = panelBoundingRect.bottom - thisBoundingRect.bottom + thisBoundingRect.height;
 
                     iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+                    iframe.style.display = 'block';
                     suggestionsElement._ntiRef = this;
                     suggestionsElement._paperInputRef = this.querySelector('paper-input');
+                } else {
+                    iframe.style.display = 'none';
                 }
 
                 suggestionsElement._suggestions = newVal;
