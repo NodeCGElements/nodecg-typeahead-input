@@ -82,20 +82,25 @@ If you want to save it in bower.json file, remember to add flag --save
 
 <script>
 (function() {
+    var IFRAME_ID = 'nodecg-typeahead-suggestions';
+
     // Build the iframe that will house the suggestions list.
     // Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
     // can serve all the nodecg-typeahead-input elements on the page.
-    var iframe = document.createElement('iframe');
-    iframe.id = 'nodecg-typeahead-suggestions';
+    var iframe = window.top.document.getElementById(IFRAME_ID);
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'nodecg-typeahead-suggestions';
 
-    // Yeah, I can't justify this. It's stupid as hell. You got me.
-    iframe.src = window.location.pathname.split('/').slice(0, 3).join('/')
-            + '/components/nodecg-typeahead-input/suggestions_iframe.html';
+        // Yeah, I can't justify this. It's stupid as hell. You got me.
+        iframe.src = window.location.pathname.split('/').slice(0, 3).join('/')
+                + '/components/nodecg-typeahead-input/suggestions_iframe.html';
 
-    iframe.style.position = 'absolute';
-    iframe.setAttribute('frameborder', '0');
+        iframe.style.position = 'absolute';
+        iframe.setAttribute('frameborder', '0');
 
-    window.top.document.body.appendChild(iframe);
+        window.top.document.body.appendChild(iframe);
+    }
 
     if (iframe.contentWindow.suggestionsReady) {
         bootstrap();
