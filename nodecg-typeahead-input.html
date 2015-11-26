@@ -9,10 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-input/paper-input.html">
-<link rel="import" href="../paper-menu/paper-menu.html">
-<link rel="import" href="../paper-item/paper-item.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
-<link rel="import" href="../paper-material/paper-material.html">
 
 <!--
 nodecg-typeahead-input is an element providing typeahead feature for input.
@@ -40,26 +37,10 @@ If you want to save it in bower.json file, remember to add flag --save
 @demo
 -->
 <dom-module id="nodecg-typeahead-input">
-
     <style>
         :host {
             display: block;
             box-sizing: border-box;
-        }
-
-        paper-material {
-            left: 0;
-            right: 0;
-            position: absolute;
-            z-index: 10;
-        }
-
-        paper-item {
-            cursor: pointer;
-        }
-
-        .iron-selected {
-            background: #E0E0E0;
         }
     </style>
 
@@ -67,6 +48,7 @@ If you want to save it in bower.json file, remember to add flag --save
         <template is="dom-if" if="{{label}}">
             <h3>{{label}}</h3>
         </template>
+
         <template is="dom-if" if="{{prefetchUrl}}">
             <iron-ajax
                     auto
@@ -77,7 +59,10 @@ If you want to save it in bower.json file, remember to add flag --save
         </template>
 
         <div style="position:relative;">
-            <paper-input value="{{inputValue}}" on-keyup="_keyup" on-keydown="_keydown" label="{{placeholder}}"
+            <paper-input value="{{inputValue}}"
+                         on-keyup="_keyup"
+                         on-keydown="_keydown"
+                         label="{{placeholder}}"
                          always-float-label="{{alwaysFloatLabel}}"
                          autofocus="{{autofocus}}"
                          char-counter="{{charCounter}}"
@@ -91,389 +76,390 @@ If you want to save it in bower.json file, remember to add flag --save
                          auto-validate="{{autoValidate}}"
                          pattern="{{pattern}}"
             ></paper-input>
-
-            <template is="dom-if" if="{{_suggestions.length}}">
-                <paper-material>
-                    <paper-menu on-iron-select="_itemSelect">
-                        <template is="dom-repeat" items="{{_suggestions}}">
-                            <paper-item on-mouseover="_selecton" on-tap="_select">
-                                <span>{{item}}</span>
-                            </paper-item>
-                        </template>
-                    </paper-menu>
-                </paper-material>
-            </template>
         </div>
     </template>
-
 </dom-module>
 
 <script>
+(function() {
+    // Build the iframe that will house the suggestions list.
+    // Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
+    // can serve all the nodecg-typeahead-input elements on the page.
+    var iframe = document.createElement('iframe');
+    iframe.id = 'nodecg-typeahead-suggestions';
 
-    Polymer({
+    // Yeah, I can't justify this. It's stupid as hell. You got me.
+    iframe.src = window.location.pathname.split('/').slice(0, 3).join('/')
+            + '/components/nodecg-typeahead-input/suggestions_iframe.html';
 
-        is: 'nodecg-typeahead-input',
+    iframe.style.position = 'absolute';
+    iframe.setAttribute('frameborder', '0');
 
-        /**
-         * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
-         *
-         * @event pt-item-select
-         */
+    window.top.document.body.appendChild(iframe);
 
-        /**
-         * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
-         * or clicked on the element directly by mouse.
-         *
-         * @event pt-item-confirmed
-         */
+    if (iframe.contentWindow.suggestionsReady) {
+        bootstrap();
+    } else {
+        iframe.contentWindow.addEventListener('suggestionsReady', bootstrap);
+    }
 
-        /**
-         * Fired when remoteUrl is set up and http request on remoteUrl is scheduled to send
-         * (depends on remoteUrlWaitMs setting).
-         *
-         * @event pt-remote-searching-start
-         */
-
-        /**
-         * Fired when remoteUrl is set up and http request on remoteUrl is finished.
-         *
-         * @event pt-remote-searching-end
-         */
-
-        properties: {
+    // Don't bootstrap this element until the iframe has finished loading.
+    function bootstrap() {
+        var suggestionsElement = iframe.contentDocument.querySelector('nodecg-typeahead-suggestions');
+        
+        Polymer({
+            is: 'nodecg-typeahead-input',
 
             /**
-             * The label that will show up as the label for tags input. It not specified, no label will show up.
-             */
-            label: {
-                type: String,
-                value: ''
-            },
-
-            /**
-             * The placeholder for the paper-input element.
-             */
-            placeholder: {
-                type: String,
-                value: 'Please enter values here'
-            },
-
-            /**
-             * The candidates from local variable.
-             */
-            localCandidates: {
-                type: Array,
-                value: []
-            },
-
-            /**
-             * Url for a prefectched list in json format for the list of suggestion candidates.
-             * The response should be something like: ["a","b"]
-             */
-            prefetchUrl: String,
-
-            /**
-             * The prefetched candidates get by prefetchUrl
-             */
-            _prefetchedCandidates: {
-                type: Array,
-                value: []
-            },
-
-            /**
-             * Internal variable holding all matched suggestions.
-             */
-            _suggestions: {
-                type: Array,
-                value: []
-            },
-
-            /**
-             * Maximum number of suggestions to show up in typeahead.
-             */
-            maxSuggestions: {
-                type: Number,
-                value: 5
-            },
-
-            /**
-             * Remote url to perform a search using the value in the input.
-             * The input value will be passed in as url parameter. The placeholder should be %QUERY.
-             */
-            remoteUrl: String,
-
-            /**
-             * Number of milliseconds to wait after user types a character.
-             * This is helpful to reduce number of calls to remoteUrl based on performance consideration if it's
-             * set up properly based on how fast user usually types.
+             * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
              *
-             * Default is undefined which means the search request to remoteUrl will be fired immediately
-             * after user types a character. This propery only makes sense if remoteUrl is set up.
+             * @event nti-item-select
              */
-            remoteUrlWaitMs: {
-                type: Number,
-                value: undefined
+
+            /**
+             * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
+             * or clicked on the element directly by mouse.
+             *
+             * @event nti-item-confirmed
+             */
+
+            /**
+             * Fired when remoteUrl is set up and http request on remoteUrl is scheduled to send
+             * (depends on remoteUrlWaitMs setting).
+             *
+             * @event nti-remote-searching-start
+             */
+
+            /**
+             * Fired when remoteUrl is set up and http request on remoteUrl is finished.
+             *
+             * @event nti-remote-searching-end
+             */
+
+            properties: {
+
+                /**
+                 * The label that will show up as the label for tags input. It not specified, no label will show up.
+                 */
+                label: {
+                    type: String,
+                    value: ''
+                },
+
+                /**
+                 * The placeholder for the paper-input element.
+                 */
+                placeholder: {
+                    type: String,
+                    value: 'Please enter values here'
+                },
+
+                /**
+                 * The candidates from local variable.
+                 */
+                localCandidates: {
+                    type: Array,
+                    value: []
+                },
+
+                /**
+                 * Url for a prefectched list in json format for the list of suggestion candidates.
+                 * The response should be something like: ["a","b"]
+                 */
+                prefetchUrl: String,
+
+                /**
+                 * The prefetched candidates get by prefetchUrl
+                 */
+                _prefetchedCandidates: {
+                    type: Array,
+                    value: []
+                },
+
+                /**
+                 * Internal variable holding all matched suggestions.
+                 */
+                _suggestions: {
+                    type: Array,
+                    value: [],
+                    observer: '_suggestionsChanged'
+                },
+
+                /**
+                 * Maximum number of suggestions to show up in typeahead.
+                 */
+                maxSuggestions: {
+                    type: Number,
+                    value: 5
+                },
+
+                /**
+                 * Remote url to perform a search using the value in the input.
+                 * The input value will be passed in as url parameter. The placeholder should be %QUERY.
+                 */
+                remoteUrl: String,
+
+                /**
+                 * Number of milliseconds to wait after user types a character.
+                 * This is helpful to reduce number of calls to remoteUrl based on performance consideration if it's
+                 * set up properly based on how fast user usually types.
+                 *
+                 * Default is undefined which means the search request to remoteUrl will be fired immediately
+                 * after user types a character. This propery only makes sense if remoteUrl is set up.
+                 */
+                remoteUrlWaitMs: {
+                    type: Number,
+                    value: undefined
+                },
+
+                /**
+                 * A boolean property to indicate if there is a searching going on to remoteUrl.
+                 * This propery only makes sense if remoteUrl is set up.
+                 */
+                remoteUrlSearching: {
+                    type: Boolean,
+                    value: false,
+                    notify: true
+                },
+
+                /**
+                 * Input value.
+                 */
+                inputValue: {
+                    type: String,
+                    notify: true
+                },
+
+                /**
+                 * Bind this to the <paper-input>'s alwaysFloatLabel property.
+                 */
+                alwaysFloatLabel: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s autofocus property.
+                 */
+                autofocus: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s charCounter property.
+                 */
+                charCounter: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s disabled property.
+                 */
+                disabled: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s errorMessage property.
+                 */
+                errorMessage: String,
+
+                /**
+                 * Bind this to the <paper-input>'s maxlength property.
+                 */
+                maxlength: Number,
+
+                /**
+                 * Bind this to the <paper-input>'s minlength property.
+                 */
+                minlength: Number,
+
+                /**
+                 * Bind this to the <paper-input>'s noLabelFloat property.
+                 */
+                noLabelFloat: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s readonly property.
+                 */
+                readonly: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s required property.
+                 */
+                required: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s autoValidate property.
+                 */
+                autoValidate: Boolean,
+
+                /**
+                 * Bind this to the <paper-input>'s pattern property.
+                 */
+                pattern: String
             },
 
-            /**
-             * A boolean property to indicate if there is a searching going on to remoteUrl.
-             * This propery only makes sense if remoteUrl is set up.
-             */
-            remoteUrlSearching: {
-                type: Boolean,
-                value: false,
-                notify: true
-            },
-
-            /**
-             * Input value.
-             */
-            inputValue: {
-                type: String,
-                notify: true
-            },
-
-            /**
-             * Bind this to the <paper-input>'s alwaysFloatLabel property.
-             */
-            alwaysFloatLabel: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s autofocus property.
-             */
-            autofocus: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s charCounter property.
-             */
-            charCounter: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s disabled property.
-             */
-            disabled: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s errorMessage property.
-             */
-            errorMessage: String,
-
-            /**
-             * Bind this to the <paper-input>'s maxlength property.
-             */
-            maxlength: Number,
-
-            /**
-             * Bind this to the <paper-input>'s minlength property.
-             */
-            minlength: Number,
-
-            /**
-             * Bind this to the <paper-input>'s noLabelFloat property.
-             */
-            noLabelFloat: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s readonly property.
-             */
-            readonly: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s required property.
-             */
-            required: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s autoValidate property.
-             */
-            autoValidate: Boolean,
-
-            /**
-             * Bind this to the <paper-input>'s pattern property.
-             */
-            pattern: String
-        },
-
-        ready: function () {
-            document.addEventListener("click", function () {
-                var ptinputs = document.querySelectorAll('nodecg-typeahead-input');
-                for (var i = 0; i < ptinputs.length; i++) {
-                    var ptinput = ptinputs[i];
-                    ptinput._suggestions = [];
-                }
-            });
-            var input = this.querySelector('paper-input');
-            input.$.input.autocomplete = 'address-level4';
-        },
-
-        _itemSelect: function (e, detail) {
-            this.fire('pt-item-select', detail);
-        },
-
-        /**
-         * Callback for keydown event
-         *
-         * @param {Object} e - Event object.
-         */
-        _keydown: function (e) {
-            if (e.which == 40 || e.which == 38) {
-                e.preventDefault();
-            }
-        },
-
-        /**
-         * Callback on mouseover event on paper-item
-         */
-        _selecton: function (e) {
-            var suggestionsMenu = this.querySelector('paper-menu');
-            if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                var selectedItem = e.currentTarget;
-                var index = Number(suggestionsMenu.indexOf(selectedItem));
-                suggestionsMenu.select(index);
+            ready: function () {
+                // This appears to be a hacky way of disabling autocomplete?
+                // https://code.google.com/p/chromium/issues/detail?id=468153
                 var input = this.querySelector('paper-input');
-                input.$.input.focus();
-            }
-            else {
-                console.log("suggestionsMenu not defined");
-            }
-        },
+                input.$.input.autocomplete = 'address-level4';
 
-        /**
-         * Callback on click event on paper-item
-         */
-        _select: function (e) {
-            var suggestionsMenu = this.querySelector('paper-menu');
-            if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                var selectedItem = e.currentTarget;
-                var index = Number(suggestionsMenu.indexOf(selectedItem));
-                this.inputValue = this._suggestions[index];
-                this._suggestions = [];
-                this.fire('pt-item-confirmed', e.target);
-                e.stopPropagation();
-            }
-            else {
-                console.log("suggestionsMenu not defined");
-            }
-        },
+                // Clear suggestions when the dashboard or a panel is clicked.
+                window.top.document.addEventListener('click', function() {
+                    this._suggestions = [];
+                }.bind(this));
 
-        /**
-         * Callback for keyup event
-         *
-         * @param {Object} e - Event object.
-         */
-        _keyup: function (e) {
-            var suggestionsMenu, selectedItem, input;
+                window.top.document.addEventListener('panelClick', function() {
+                    this._suggestions = [];
+                }.bind(this));
+            },
 
-            if (e.which == 40) {
-                //down button
-                suggestionsMenu = this.querySelector('paper-menu');
-                selectedItem = suggestionsMenu.focusedItem;
+            _suggestionsChanged: function(newVal) {
+                // If we have suggestions, that must mean we want to show them.
+                // So, we need to figure out where to place the suggestions iframe.
+                if (newVal.length > 0) {
+                    var panelBoundingRect = window.frameElement.getBoundingClientRect();
+                    var thisBoundingRect = this.getBoundingClientRect();
+
+                    var x = panelBoundingRect.left + thisBoundingRect.left;
+                    var y = panelBoundingRect.bottom - thisBoundingRect.bottom + thisBoundingRect.height;
+
+                    iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+                    suggestionsElement._ntiRef = this;
+                    suggestionsElement._paperInputRef = this.querySelector('paper-input');
+                }
+
+                suggestionsElement._suggestions = newVal;
+            },
+
+            /**
+             * Callback for keydown event
+             *
+             * @param {Object} e - Event object.
+             */
+            // TODO: I don't know why this is here.
+            _keydown: function (e) {
+                // Down and up arrow keys
+                if (e.which == 40 || e.which == 38) {
+                    e.preventDefault();
+                }
+            },
+
+            /**
+             * Callback for keyup event
+             *
+             * @param {Object} e - Event object.
+             */
+            _keyup: function (e) {
                 var index = 0;
-                if (typeof(selectedItem) != 'undefined') {
-                    index = Number(suggestionsMenu.indexOf(selectedItem));
-                    index = Math.min(index + 1, this._suggestions.length - 1);
-                }
-                suggestionsMenu.select(index);
-                input = this.querySelector('paper-input');
-                input.$.input.focus();
-            }
-            else if (e.which == 38) {
-                //up
-                suggestionsMenu = this.querySelector('paper-menu');
-                selectedItem = suggestionsMenu.focusedItem;
-                if (typeof(selectedItem) != 'undefined') {
-                    index = Number(suggestionsMenu.indexOf(selectedItem));
-                    index = Math.max(index - 1, -1);
-                    suggestionsMenu.select(index);
-                }
-                input = this.querySelector('paper-input');
-                input.$.input.focus();
-            }
-            else if (e.which == 13) {
-                suggestionsMenu = this.querySelector('paper-menu');
-                if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
+                var selectedItem;
+                var input = this.querySelector('paper-input');
+                var suggestionsMenu = iframe.contentDocument.querySelector('paper-menu');
+
+                if (suggestionsMenu) {
                     selectedItem = suggestionsMenu.focusedItem;
-                    if (typeof(selectedItem) != 'undefined') {
+                }
+
+                // Down arrow key
+                if (e.which == 40) {
+                    if (typeof(selectedItem) !== 'undefined') {
                         index = Number(suggestionsMenu.indexOf(selectedItem));
-                        this.inputValue = this._suggestions[index];
-                        this._suggestions = [];
-                        this.fire('pt-item-confirmed', selectedItem);
+                        index = Math.min(index + 1, this._suggestions.length - 1);
                     }
+                    suggestionsMenu.select(index);
+                    input.$.input.focus();
                 }
-            }
-            else {
-                suggestionsMenu = this.querySelector('paper-menu');
-                if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                    suggestionsMenu.select(-1);
+
+                // Up arrow key
+                else if (e.which == 38) {
+                    if (typeof(selectedItem) !== 'undefined') {
+                        index = Number(suggestionsMenu.indexOf(selectedItem));
+                        index = Math.max(index - 1, 0);
+                        suggestionsMenu.select(index);
+                    }
+                    input.$.input.focus();
                 }
-                this._search(this.inputValue.trim());
-            }
-        },
-        _search: function (term) {
-            if (term == "") {
-                this._suggestions = [];
-                return;
-            }
 
-            var patt = new RegExp(term.toLowerCase());
-            var matched = [];
-            var i;
-
-            if (typeof(this.localCandidates) != 'undefined') {
-                for (i = 0; i < this.localCandidates.length; i++) {
-                    if (matched.length == this.maxSuggestions) {
-                        break;
-                    }
-                    if (patt.test(this.localCandidates[i].toLowerCase()) == true) {
-                        matched.push(this.localCandidates[i]);
-                    }
-                }
-            }
-
-            if (typeof(this._prefetchedCandidates) != 'undefined') {
-                for (i = 0; i < this._prefetchedCandidates.length; i++) {
-                    if (matched.length == this.maxSuggestions) {
-                        break;
-                    }
-                    if (patt.test(this._prefetchedCandidates[i].toLowerCase()) == true) {
-                        matched.push(this._prefetchedCandidates[i]);
-                    }
-                }
-            }
-
-            if (typeof(this.remoteUrl) != 'undefined') {
-                var pt_element = this;
-                pt_element.fire('pt-remote-searching-start', pt_element);
-                pt_element.remoteUrlSearching = true;
-                this.debounce('remoteUrlSearch', function () {
-                    var url = pt_element.remoteUrl.replace("%QUERY", term);
-                    var xmlhttp = new XMLHttpRequest();
-                    xmlhttp.open('GET', url, true);
-                    xmlhttp.setRequestHeader("Content-type", "application/json");
-                    var ptinput = pt_element;
-                    xmlhttp.onreadystatechange = function () {
-                        if (xmlhttp.readyState === 4) {
-                            if (xmlhttp.status == 200) {
-                                var resp = xmlhttp.response;
-                                var remoteMatched = JSON.parse(resp);
-                                var cuttedMatched = remoteMatched.slice(0, ptinput.maxSuggestions);
-                                matched = matched.concat(cuttedMatched);
-                                ptinput._suggestions = matched;
-                            }
-                            pt_element.remoteUrlSearching = false;
-                            pt_element.fire('pt-remote-searching-end', pt_element);
+                // Enter key
+                else if (e.which == 13) {
+                    if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
+                        if (typeof(selectedItem) !== 'undefined') {
+                            index = Number(suggestionsMenu.indexOf(selectedItem));
+                            this.inputValue = this._suggestions[index];
+                            this._suggestions = [];
+                            this.fire('nti-item-confirmed', selectedItem);
                         }
+                    }
+                }
+
+                // All other keys
+                else {
+                    if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
+                        suggestionsMenu.select(-1);
+                    }
+                    this._search(this.inputValue.trim());
+                }
+            },
+
+            _search: function (term) {
+                if (term === '') {
+                    this._suggestions = [];
+                    return;
+                }
+
+                var patt = new RegExp(term.toLowerCase());
+                var matched = [];
+                var i;
+
+                // Look for matches in localCandidates
+                if (typeof(this.localCandidates) !== 'undefined') {
+                    for (i = 0; i < this.localCandidates.length; i++) {
+                        if (matched.length === this.maxSuggestions) break;
+                        if (patt.test(this.localCandidates[i].toLowerCase()) == true) {
+                            matched.push(this.localCandidates[i]);
+                        }
+                    }
+                }
+
+                // Look for matches in prefetchedCandidates
+                if (typeof(this._prefetchedCandidates) !== 'undefined') {
+                    for (i = 0; i < this._prefetchedCandidates.length; i++) {
+                        if (matched.length === this.maxSuggestions) break;
+                        if (patt.test(this._prefetchedCandidates[i].toLowerCase()) == true) {
+                            matched.push(this._prefetchedCandidates[i]);
+                        }
+                    }
+                }
+
+                // Look for matches from the remoteUrl, if there is one.
+                if (typeof(this.remoteUrl) !== 'undefined') {
+                    var pt_element = this;
+                    pt_element.fire('nti-remote-searching-start', pt_element);
+                    pt_element.remoteUrlSearching = true;
+                    this.debounce('remoteUrlSearch', function () {
+                        var url = pt_element.remoteUrl.replace('%QUERY', term);
+                        var xmlhttp = new XMLHttpRequest();
+                        xmlhttp.open('GET', url, true);
+                        xmlhttp.setRequestHeader('Content-type', 'application/json');
+                        var ptinput = pt_element;
+                        xmlhttp.onreadystatechange = function () {
+                            if (xmlhttp.readyState === 4) {
+                                if (xmlhttp.status == 200) {
+                                    var resp = xmlhttp.response;
+                                    var remoteMatched = JSON.parse(resp);
+                                    var cuttedMatched = remoteMatched.slice(0, ptinput.maxSuggestions);
+                                    matched = matched.concat(cuttedMatched);
+                                    ptinput._suggestions = matched;
+                                }
+                                pt_element.remoteUrlSearching = false;
+                                pt_element.fire('nti-remote-searching-end', pt_element);
+                            }
 
 
-                    };
-                    xmlhttp.send();
-                }, this.remoteUrlWaitMs);
+                        };
+                        xmlhttp.send();
+                    }, this.remoteUrlWaitMs);
+                }
+
+                // Otherwise, we know we have all the matches and can show the suggestions.
+                else {
+                    this._suggestions = matched;
+                }
             }
-            else {
-                this._suggestions = matched;
-            }
-        }
-
-    });
-
+        });
+    }
+})();
 </script>
