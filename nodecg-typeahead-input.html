@@ -320,7 +320,7 @@ If you want to save it in bower.json file, remember to add flag --save
                     var thisBoundingRect = this.getBoundingClientRect();
 
                     var x = panelBoundingRect.left + thisBoundingRect.left;
-                    var y = panelBoundingRect.bottom - thisBoundingRect.bottom + thisBoundingRect.height;
+                    var y = panelBoundingRect.bottom - (panelBoundingRect.height - thisBoundingRect.bottom);
 
                     iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
                     iframe.style.display = 'block';
