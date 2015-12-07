@@ -140,6 +140,11 @@ If you want to save it in bower.json file, remember to add flag --save
                 this._ntiRef.inputValue = this._suggestions[index];
                 this._suggestions = [];
                 this.fire('nts-item-confirmed', e.target);
+
+                if (window.frameElement) {
+                    window.frameElement.style.display = 'none';
+                }
+
                 e.stopPropagation();
             }
             else {
