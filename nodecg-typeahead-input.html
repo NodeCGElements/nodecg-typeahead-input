@@ -1,15 +1,6 @@
-<!--
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-input/paper-input.html">
-<link rel="import" href="../iron-ajax/iron-ajax.html">
+<link rel="import" href="../nodecg-replicant/nodecg-replicant.html">
 
 <!--
 nodecg-typeahead-input is an element providing typeahead feature for input.
@@ -19,10 +10,6 @@ Basic use of nodecg-typeahead-input. Use a predefined list of suggestions.
     <nodecg-typeahead-input label="US states" local-candidates="{{states}}"
      placeholder="Please enter value" max-suggestions="4">
     </nodecg-typeahead-input>
-
-For now, there are three types of sources for suggetions. localCandidates, prefetchUrl, and remoteUrl.
-The candidates combined from these three ways becomes the potential candidates for input.
-
 
 <b>Installation</b>
 
@@ -37,438 +24,370 @@ If you want to save it in bower.json file, remember to add flag --save
 @demo
 -->
 <dom-module id="nodecg-typeahead-input">
-    <style>
-        :host {
-            display: block;
-            box-sizing: border-box;
-        }
-    </style>
+	<template>
+		<style>
+			:host {
+				display: block;
+				box-sizing: border-box;
+			}
+		</style>
 
-    <template>
-        <template is="dom-if" if="{{label}}">
-            <h3>{{label}}</h3>
-        </template>
+		<nodecg-replicant replicant-name="[[replicantName]]" replicant-bundle="[[replicantBundle]]"
+						  value="{{candidates}}"></nodecg-replicant>
 
-        <template is="dom-if" if="{{prefetchUrl}}">
-            <iron-ajax
-                    auto
-                    url="{{prefetchUrl}}"
-                    handle-as="json"
-                    last-response="{{_prefetchedCandidates}}"
-            ></iron-ajax>
-        </template>
-
-        <div style="position:relative;">
-            <paper-input value="{{inputValue}}"
-                         on-keyup="_keyup"
-                         on-keydown="_keydown"
-                         label="{{placeholder}}"
-                         always-float-label="{{alwaysFloatLabel}}"
-                         autofocus="{{autofocus}}"
-                         char-counter="{{charCounter}}"
-                         disabled="{{disabled}}"
-                         error-message="{{errorMessage}}"
-                         maxlength="{{maxlength}}"
-                         minlength="{{minlength}}"
-                         no-label-float="{{noLabelFloat}}"
-                         readonly="{{readonly}}"
-                         required="{{required}}"
-                         auto-validate="{{autoValidate}}"
-                         pattern="{{pattern}}"
-            ></paper-input>
-        </div>
-    </template>
+		<div style="position:relative;">
+			<paper-input id="input"
+						 value="{{value}}"
+						 on-keyup="_keyup"
+						 on-keydown="_keydown"
+						 label="{{label}}"
+						 always-float-label="{{alwaysFloatLabel}}"
+						 autofocus="{{autofocus}}"
+						 char-counter="{{charCounter}}"
+						 disabled="{{disabled}}"
+						 error-message="{{errorMessage}}"
+						 maxlength="{{maxlength}}"
+						 minlength="{{minlength}}"
+						 no-label-float="{{noLabelFloat}}"
+						 readonly="{{readonly}}"
+						 required="{{required}}"
+						 auto-validate="{{autoValidate}}"
+						 pattern="{{pattern}}"
+			></paper-input>
+		</div>
+	</template>
 </dom-module>
 
 <script>
-(function() {
-    var IFRAME_ID = 'nodecg-typeahead-suggestions';
+(function () {
+	var ESCAPE_REGEX = /[-\/\\^$*+?.()|[\]{}]/g;
+	var IFRAME_ID = 'nodecg-typeahead-suggestions';
 
-    // Build the iframe that will house the suggestions list.
-    // Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
-    // can serve all the nodecg-typeahead-input elements on the page.
-    var iframe = window.top.document.getElementById(IFRAME_ID);
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'nodecg-typeahead-suggestions';
-        iframe.height = 400;
+	// Build the iframe that will house the suggestions list.
+	// Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
+	// can serve all the nodecg-typeahead-input elements on the page.
+	var iframe = window.top.document.getElementById(IFRAME_ID);
+	if (!iframe) {
+		iframe = document.createElement('iframe');
+		iframe.id = IFRAME_ID;
+		iframe.height = 400;
 
-        // Yeah, I can't justify this. It's stupid as hell. You got me.
-        iframe.src = window.location.pathname.split('/').slice(0, 3).join('/')
-                + '/components/nodecg-typeahead-input/suggestions_iframe.html';
+		// Yeah, I can't justify this. It's stupid as hell. You got me.
+		iframe.src = window.location.pathname.split('/').slice(0, 3).join('/') +
+				'/components/nodecg-typeahead-input/suggestions_iframe.html';
 
-        iframe.style.position = 'absolute';
-        iframe.setAttribute('frameborder', '0');
+		iframe.style.position = 'absolute';
+		iframe.setAttribute('frameborder', '0');
 
-        window.top.document.body.appendChild(iframe);
-    }
+		window.top.document.body.appendChild(iframe);
+	}
 
-    if (iframe.contentWindow.suggestionsReady) {
-        bootstrap();
-    } else {
-        iframe.contentWindow.addEventListener('suggestionsReady', bootstrap);
-    }
+	// Don't bootstrap this element until the iframe has finished loading.
+	if (iframe.contentWindow.suggestionsReady) {
+		bootstrap();
+	} else {
+		iframe.contentWindow.addEventListener('suggestionsReady', bootstrap);
+	}
 
-    // Don't bootstrap this element until the iframe has finished loading.
-    function bootstrap() {
-        var suggestionsElement = iframe.contentDocument.querySelector('nodecg-typeahead-suggestions');
-        
-        Polymer({
-            is: 'nodecg-typeahead-input',
+	function bootstrap() {
+		var suggestionsElement = iframe.contentDocument.querySelector('nodecg-typeahead-suggestions');
+		var suggestionsMenu = iframe.contentDocument.querySelector('paper-menu');
 
-            /**
-             * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
-             *
-             * @event nti-item-select
-             */
+		Polymer({
+			is: 'nodecg-typeahead-input',
 
-            /**
-             * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
-             * or clicked on the element directly by mouse.
-             *
-             * @event nti-item-confirmed
-             */
+			/**
+			 * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
+			 *
+			 * @event suggestion-select
+			 */
 
-            /**
-             * Fired when remoteUrl is set up and http request on remoteUrl is scheduled to send
-             * (depends on remoteUrlWaitMs setting).
-             *
-             * @event nti-remote-searching-start
-             */
+			/**
+			 * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
+			 * or clicked on the element directly by mouse.
+			 *
+			 * @event suggestion-confirm
+			 */
 
-            /**
-             * Fired when remoteUrl is set up and http request on remoteUrl is finished.
-             *
-             * @event nti-remote-searching-end
-             */
+			properties: {
 
-            properties: {
+				/**
+				 * The label that will show up as the label for tags input. It not specified, no label will show up.
+				 */
+				label: {
+					type: String,
+					value: ''
+				},
 
-                /**
-                 * The label that will show up as the label for tags input. It not specified, no label will show up.
-                 */
-                label: {
-                    type: String,
-                    value: ''
-                },
+				/**
+				 * The placeholder for the paper-input element.
+				 */
+				placeholder: {
+					type: String,
+					value: 'Please enter values here'
+				},
 
-                /**
-                 * The placeholder for the paper-input element.
-                 */
-                placeholder: {
-                    type: String,
-                    value: 'Please enter values here'
-                },
+				/**
+				 * The candidates from local variable.
+				 */
+				candidates: {
+					type: Array
+				},
 
-                /**
-                 * The candidates from local variable.
-                 */
-                localCandidates: {
-                    type: Array,
-                    value: []
-                },
+				selectedCandidate: {
+					type: Object,
+					computed: '_computeSelectedCandidate(value, candidates)',
+					notify: true
+				},
 
-                /**
-                 * Url for a prefectched list in json format for the list of suggestion candidates.
-                 * The response should be something like: ["a","b"]
-                 */
-                prefetchUrl: String,
+				/**
+				 * If the items in the suggestions Replicant are objects, this is the field that nodecg-typeahead-input
+				 * should look at to determine if an item matches.
+				 */
+				suggestionField: {
+					type: String
+				},
 
-                /**
-                 * The prefetched candidates get by prefetchUrl
-                 */
-                _prefetchedCandidates: {
-                    type: Array,
-                    value: []
-                },
+				/**
+				 * Internal variable holding all matched suggestions.
+				 */
+				_suggestions: {
+					type: Array,
+					value: function () {
+						return []
+					},
+					observer: '_suggestionsChanged'
+				},
 
-                /**
-                 * Internal variable holding all matched suggestions.
-                 */
-                _suggestions: {
-                    type: Array,
-                    value: [],
-                    observer: '_suggestionsChanged'
-                },
+				/**
+				 * Maximum number of suggestions to show up in typeahead.
+				 */
+				maxSuggestions: {
+					type: Number,
+					value: 5
+				},
 
-                /**
-                 * Maximum number of suggestions to show up in typeahead.
-                 */
-                maxSuggestions: {
-                    type: Number,
-                    value: 5
-                },
+				/**
+				 * Input value.
+				 */
+				value: {
+					type: String,
+					notify: true
+				},
 
-                /**
-                 * Remote url to perform a search using the value in the input.
-                 * The input value will be passed in as url parameter. The placeholder should be %QUERY.
-                 */
-                remoteUrl: String,
+				/**
+				 * Bind this to the <paper-input>'s alwaysFloatLabel property.
+				 */
+				alwaysFloatLabel: Boolean,
 
-                /**
-                 * Number of milliseconds to wait after user types a character.
-                 * This is helpful to reduce number of calls to remoteUrl based on performance consideration if it's
-                 * set up properly based on how fast user usually types.
-                 *
-                 * Default is undefined which means the search request to remoteUrl will be fired immediately
-                 * after user types a character. This propery only makes sense if remoteUrl is set up.
-                 */
-                remoteUrlWaitMs: {
-                    type: Number,
-                    value: undefined
-                },
+				/**
+				 * Bind this to the <paper-input>'s autofocus property.
+				 */
+				autofocus: Boolean,
 
-                /**
-                 * A boolean property to indicate if there is a searching going on to remoteUrl.
-                 * This propery only makes sense if remoteUrl is set up.
-                 */
-                remoteUrlSearching: {
-                    type: Boolean,
-                    value: false,
-                    notify: true
-                },
+				/**
+				 * Bind this to the <paper-input>'s charCounter property.
+				 */
+				charCounter: Boolean,
 
-                /**
-                 * Input value.
-                 */
-                inputValue: {
-                    type: String,
-                    notify: true
-                },
+				/**
+				 * Bind this to the <paper-input>'s disabled property.
+				 */
+				disabled: Boolean,
 
-                /**
-                 * Bind this to the <paper-input>'s alwaysFloatLabel property.
-                 */
-                alwaysFloatLabel: Boolean,
+				/**
+				 * Bind this to the <paper-input>'s errorMessage property.
+				 */
+				errorMessage: String,
 
-                /**
-                 * Bind this to the <paper-input>'s autofocus property.
-                 */
-                autofocus: Boolean,
+				/**
+				 * Bind this to the <paper-input>'s maxlength property.
+				 */
+				maxlength: Number,
 
-                /**
-                 * Bind this to the <paper-input>'s charCounter property.
-                 */
-                charCounter: Boolean,
+				/**
+				 * Bind this to the <paper-input>'s minlength property.
+				 */
+				minlength: Number,
 
-                /**
-                 * Bind this to the <paper-input>'s disabled property.
-                 */
-                disabled: Boolean,
+				/**
+				 * Bind this to the <paper-input>'s noLabelFloat property.
+				 */
+				noLabelFloat: Boolean,
 
-                /**
-                 * Bind this to the <paper-input>'s errorMessage property.
-                 */
-                errorMessage: String,
+				/**
+				 * Bind this to the <paper-input>'s readonly property.
+				 */
+				readonly: Boolean,
 
-                /**
-                 * Bind this to the <paper-input>'s maxlength property.
-                 */
-                maxlength: Number,
+				/**
+				 * Bind this to the <paper-input>'s required property.
+				 */
+				required: Boolean,
 
-                /**
-                 * Bind this to the <paper-input>'s minlength property.
-                 */
-                minlength: Number,
+				/**
+				 * Bind this to the <paper-input>'s autoValidate property.
+				 */
+				autoValidate: Boolean,
 
-                /**
-                 * Bind this to the <paper-input>'s noLabelFloat property.
-                 */
-                noLabelFloat: Boolean,
+				/**
+				 * Bind this to the <paper-input>'s pattern property.
+				 */
+				pattern: String
+			},
 
-                /**
-                 * Bind this to the <paper-input>'s readonly property.
-                 */
-                readonly: Boolean,
+			ready: function () {
+				// This appears to be a hacky way of disabling autocomplete?
+				// https://code.google.com/p/chromium/issues/detail?id=468153
+				var input = this.querySelector('paper-input');
+				input.$.input.autocomplete = 'address-level4';
 
-                /**
-                 * Bind this to the <paper-input>'s required property.
-                 */
-                required: Boolean,
+				// Clear suggestions when the dashboard or a panel is clicked.
+				window.top.document.addEventListener('click', function () {
+					this._suggestions = [];
+				}.bind(this));
 
-                /**
-                 * Bind this to the <paper-input>'s autoValidate property.
-                 */
-                autoValidate: Boolean,
+				window.top.document.addEventListener('panelClick', function () {
+					this._suggestions = [];
+				}.bind(this));
+			},
 
-                /**
-                 * Bind this to the <paper-input>'s pattern property.
-                 */
-                pattern: String
-            },
+			_computeSelectedCandidate: function (newVal, candidates) {
+				if (this.suggestionField) {
+					return candidates.find(function (candidate) {
+						return candidate[this.suggestionField] === newVal;
+					}.bind(this));
+				} else {
+					return newVal;
+				}
+			},
 
-            ready: function () {
-                // This appears to be a hacky way of disabling autocomplete?
-                // https://code.google.com/p/chromium/issues/detail?id=468153
-                var input = this.querySelector('paper-input');
-                input.$.input.autocomplete = 'address-level4';
+			_suggestionsChanged: function (newVal) {
+				// If we have suggestions, that must mean we want to show them.
+				// So, we need to figure out where to place the suggestions iframe.
+				if (newVal.length > 0) {
+					var panelBoundingRect = window.frameElement.getBoundingClientRect();
+					var thisBoundingRect = this.getBoundingClientRect();
+					var x = panelBoundingRect.left + thisBoundingRect.left;
+					var y = panelBoundingRect.bottom - (panelBoundingRect.height - thisBoundingRect.bottom);
+					iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+					iframe.style.display = 'block';
+					suggestionsElement._ntiRef = this;
+					suggestionsElement._paperInputRef = this.querySelector('paper-input');
+				} else {
+					iframe.style.display = 'none';
+				}
 
-                // Clear suggestions when the dashboard or a panel is clicked.
-                window.top.document.addEventListener('click', function() {
-                    this._suggestions = [];
-                }.bind(this));
+				suggestionsElement._suggestions = newVal;
+			},
 
-                window.top.document.addEventListener('panelClick', function() {
-                    this._suggestions = [];
-                }.bind(this));
-            },
+			/**
+			 * Callback for keydown event
+			 *
+			 * @param {Object} e - Event object.
+			 */
+			// TODO: I don't know why this is here.
+			_keydown: function (e) {
+				// Down and up arrow keys
+				if (e.which === 40 || e.which === 38) {
+					e.preventDefault();
+				}
+			},
 
-            _suggestionsChanged: function(newVal) {
-                // If we have suggestions, that must mean we want to show them.
-                // So, we need to figure out where to place the suggestions iframe.
-                if (newVal.length > 0) {
-                    var panelBoundingRect = window.frameElement.getBoundingClientRect();
-                    var thisBoundingRect = this.getBoundingClientRect();
+			/**
+			 * Callback for keyup event
+			 *
+			 * @param {Object} e - Event object.
+			 */
+			_keyup: function (e) {
+				var index = 0;
+				var selectedItem;
+				var input = this.$.input;
 
-                    var x = panelBoundingRect.left + thisBoundingRect.left;
-                    var y = panelBoundingRect.bottom - (panelBoundingRect.height - thisBoundingRect.bottom);
+				if (this._suggestions.length > 0) {
+					selectedItem = suggestionsMenu.focusedItem;
+				}
 
-                    iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-                    iframe.style.display = 'block';
-                    suggestionsElement._ntiRef = this;
-                    suggestionsElement._paperInputRef = this.querySelector('paper-input');
-                } else {
-                    iframe.style.display = 'none';
-                }
+				switch (e.which) {
+					// Down arrow key
+					case 40: {
+						if (selectedItem !== undefined) {
+							index = Number(suggestionsMenu.indexOf(selectedItem));
+							index = Math.min(index + 1, this._suggestions.length - 1);
+						}
+						suggestionsMenu.select(index);
+						input.$.input.focus();
+						break;
+					}
 
-                suggestionsElement._suggestions = newVal;
-            },
+					// Up arrow key
+					case 38: {
+						if (selectedItem !== undefined) {
+							index = Number(suggestionsMenu.indexOf(selectedItem));
+							index = Math.max(index - 1, 0);
+							suggestionsMenu.select(index);
+						}
+						input.$.input.focus();
+						break;
+					}
 
-            /**
-             * Callback for keydown event
-             *
-             * @param {Object} e - Event object.
-             */
-            // TODO: I don't know why this is here.
-            _keydown: function (e) {
-                // Down and up arrow keys
-                if (e.which == 40 || e.which == 38) {
-                    e.preventDefault();
-                }
-            },
+					// Enter key
+					case 13: {
+						if (this._suggestions.length > 0) {
+							if (selectedItem !== undefined) {
+								index = Number(suggestionsMenu.indexOf(selectedItem));
+								if (this._suggestions[index]) {
+									this.value = this._suggestions[index];
+								}
+								this._suggestions = [];
+								this.fire('suggestion-confirm', selectedItem);
+							}
+						}
+						break;
+					}
 
-            /**
-             * Callback for keyup event
-             *
-             * @param {Object} e - Event object.
-             */
-            _keyup: function (e) {
-                var index = 0;
-                var selectedItem;
-                var input = this.querySelector('paper-input');
-                var suggestionsMenu = iframe.contentDocument.querySelector('paper-menu');
+					default: {
+						if (this._suggestions.length > 0) {
+							suggestionsMenu.select(-1);
+						}
+						this._search(this.value.trim());
+					}
+				}
+			},
 
-                if (suggestionsMenu) {
-                    selectedItem = suggestionsMenu.focusedItem;
-                }
+			_search: function (term) {
+				if (term === '') {
+					this._suggestions = [];
+					return;
+				}
 
-                // Down arrow key
-                if (e.which == 40) {
-                    if (typeof(selectedItem) !== 'undefined') {
-                        index = Number(suggestionsMenu.indexOf(selectedItem));
-                        index = Math.min(index + 1, this._suggestions.length - 1);
-                    }
-                    suggestionsMenu.select(index);
-                    input.$.input.focus();
-                }
+				// Regex escape: http://stackoverflow.com/a/3561711/3903335
+				var escaped = term.toLowerCase().replace(ESCAPE_REGEX, '\\$&');
+				var patt = new RegExp(escaped);
+				var matched = [];
+				var i;
 
-                // Up arrow key
-                else if (e.which == 38) {
-                    if (typeof(selectedItem) !== 'undefined') {
-                        index = Number(suggestionsMenu.indexOf(selectedItem));
-                        index = Math.max(index - 1, 0);
-                        suggestionsMenu.select(index);
-                    }
-                    input.$.input.focus();
-                }
+				// Look for matches in candidates
+				if (this.candidates !== undefined) {
+					for (i = 0; i < this.candidates.length; i++) {
+						if (matched.length === this.maxSuggestions) {
+							break;
+						}
 
-                // Enter key
-                else if (e.which == 13) {
-                    if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                        if (typeof(selectedItem) !== 'undefined') {
-                            index = Number(suggestionsMenu.indexOf(selectedItem));
-                            this.inputValue = this._suggestions[index];
-                            this._suggestions = [];
-                            this.fire('nti-item-confirmed', selectedItem);
-                        }
-                    }
-                }
+						var candidateStr = this.candidates[i];
+						if (this.suggestionField) {
+							candidateStr = candidateStr[this.suggestionField];
+						}
 
-                // All other keys
-                else {
-                    if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                        suggestionsMenu.select(-1);
-                    }
-                    this._search(this.inputValue.trim());
-                }
-            },
+						if (patt.test(candidateStr.toLowerCase())) {
+							matched.push(candidateStr);
+						}
+					}
+				}
 
-            _search: function (term) {
-                if (term === '') {
-                    this._suggestions = [];
-                    return;
-                }
-
-                var patt = new RegExp(term.toLowerCase());
-                var matched = [];
-                var i;
-
-                // Look for matches in localCandidates
-                if (typeof(this.localCandidates) !== 'undefined') {
-                    for (i = 0; i < this.localCandidates.length; i++) {
-                        if (matched.length === this.maxSuggestions) break;
-                        if (patt.test(this.localCandidates[i].toLowerCase()) == true) {
-                            matched.push(this.localCandidates[i]);
-                        }
-                    }
-                }
-
-                // Look for matches in prefetchedCandidates
-                if (typeof(this._prefetchedCandidates) !== 'undefined') {
-                    for (i = 0; i < this._prefetchedCandidates.length; i++) {
-                        if (matched.length === this.maxSuggestions) break;
-                        if (patt.test(this._prefetchedCandidates[i].toLowerCase()) == true) {
-                            matched.push(this._prefetchedCandidates[i]);
-                        }
-                    }
-                }
-
-                // Look for matches from the remoteUrl, if there is one.
-                if (typeof(this.remoteUrl) !== 'undefined') {
-                    var pt_element = this;
-                    pt_element.fire('nti-remote-searching-start', pt_element);
-                    pt_element.remoteUrlSearching = true;
-                    this.debounce('remoteUrlSearch', function () {
-                        var url = pt_element.remoteUrl.replace('%QUERY', term);
-                        var xmlhttp = new XMLHttpRequest();
-                        xmlhttp.open('GET', url, true);
-                        xmlhttp.setRequestHeader('Content-type', 'application/json');
-                        var ptinput = pt_element;
-                        xmlhttp.onreadystatechange = function () {
-                            if (xmlhttp.readyState === 4) {
-                                if (xmlhttp.status == 200) {
-                                    var resp = xmlhttp.response;
-                                    var remoteMatched = JSON.parse(resp);
-                                    var cuttedMatched = remoteMatched.slice(0, ptinput.maxSuggestions);
-                                    matched = matched.concat(cuttedMatched);
-                                    ptinput._suggestions = matched;
-                                }
-                                pt_element.remoteUrlSearching = false;
-                                pt_element.fire('nti-remote-searching-end', pt_element);
-                            }
-
-
-                        };
-                        xmlhttp.send();
-                    }, this.remoteUrlWaitMs);
-                }
-
-                // Otherwise, we know we have all the matches and can show the suggestions.
-                else {
-                    this._suggestions = matched;
-                }
-            }
-        });
-    }
+				this._suggestions = matched;
+			}
+		});
+	}
 })();
 </script>

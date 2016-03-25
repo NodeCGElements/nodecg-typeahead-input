@@ -1,155 +1,104 @@
-<!--
-@license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
-This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
-The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
-The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
-Code distributed by Google as part of the polymer project is also
-subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
--->
 <link rel="import" href="../polymer/polymer.html">
 <link rel="import" href="../paper-menu/paper-menu.html">
 <link rel="import" href="../paper-item/paper-item.html">
 <link rel="import" href="../paper-material/paper-material.html">
-<link rel="import" href="../paper-styles/paper-styles.html">
 
-<!--
-nodecg-typeahead-suggestions is an element providing typeahead feature for input.
-
-Basic use of nodecg-typeahead-suggestions. Use a predefined list of suggestions.
-
-    <nodecg-typeahead-suggestions label="US states" local-candidates="{{states}}"
-     placeholder="Please enter value" max-suggestions="4">
-    </nodecg-typeahead-suggestions>
-
-For now, there are three types of sources for suggetions. localCandidates, prefetchUrl, and remoteUrl.
-The candidates combined from these three ways becomes the potential candidates for input.
-
-
-<b>Installation</b>
-
-Install with bower
-
-    bower install nodecg-typeahead-suggestions
-
-If you want to save it in bower.json file, remember to add flag --save
-
-    bower install --save nodecg-typeahead-suggestions
-
-@demo
--->
 <dom-module id="nodecg-typeahead-suggestions">
-    <style>
-        :host {
-            display: block;
-            box-sizing: border-box;
-        }
+	<template>
+		<style>
+			:host {
+				display: block;
+				box-sizing: border-box;
+				font-family: 'Roboto', 'Noto', sans-serif;
+			}
 
-        paper-material {
-            left: 0;
-            right: 0;
-            position: absolute;
-            z-index: 10;
-        }
+			paper-material {
+				left: 0;
+				right: 0;
+				position: absolute;
+				z-index: 10;
+			}
 
-        paper-item {
-            cursor: pointer;
-        }
+			paper-item {
+				cursor: pointer;
+			}
 
-        .iron-selected {
-            background: #E0E0E0;
-        }
-    </style>
+			.iron-selected {
+				background: #E0E0E0;
+			}
+		</style>
 
-    <template>
-        <template is="dom-if" if="{{_suggestions.length}}">
-            <paper-material>
-                <paper-menu on-iron-select="_itemSelect">
-                    <template is="dom-repeat" items="{{_suggestions}}">
-                        <paper-item on-mouseover="_selecton" on-tap="_select">
-                            <span>{{item}}</span>
-                        </paper-item>
-                    </template>
-                </paper-menu>
-            </paper-material>
-        </template>
-    </template>
+		<paper-material id="material">
+			<paper-menu on-iron-select="_itemSelect">
+				<template is="dom-repeat" items="{{_suggestions}}">
+					<paper-item on-mouseover="_selecton" on-tap="_select">
+						<span>{{item}}</span>
+					</paper-item>
+				</template>
+			</paper-menu>
+		</paper-material>
+	</template>
 </dom-module>
 
 <script>
-    Polymer({
-        is: 'nodecg-typeahead-suggestions',
+	Polymer({
+		is: 'nodecg-typeahead-suggestions',
 
-        /**
-         * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
-         *
-         * @event nts-item-select
-         */
+		properties: {
 
-        /**
-         * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
-         * or clicked on the element directly by mouse.
-         *
-         * @event nts-item-confirmed
-         */
+			/**
+			 * Internal variable holding all matched suggestions.
+			 */
+			_suggestions: {
+				type: Array,
+				value: [],
+				observer: '_suggestionsChanged'
+			}
+		},
 
-        properties: {
+		_suggestionsChanged: function (newVal) {
+			this.$.material.style.display = newVal.length > 0 ? 'block' : 'none';
+		},
 
-            /**
-             * Internal variable holding all matched suggestions.
-             */
-            _suggestions: {
-                type: Array,
-                value: []
-            }
-        },
+		ready: function () {
+			window.dispatchEvent(new CustomEvent('suggestionsReady'));
+			window.suggestionsReady = true;
 
-        ready: function () {
-            window.dispatchEvent(new CustomEvent('suggestionsReady'));
-            window.suggestionsReady = true;
-        },
+			// Hide suggestions when clicking on an empty part of the suggestions iframe.
+			window.addEventListener('click', function (e) {
+				if (e.target.tagName === 'HTML') {
+					this._suggestions = [];
+				}
+			}.bind(this));
+		},
 
-        _itemSelect: function (e, detail) {
-            this.fire('nts-item-select', detail);
-        },
+		_itemSelect: function (e, detail) {
+			this._ntiRef.fire('suggestion-select', detail);
+		},
 
-        /**
-         * Callback on mouseover event on paper-item
-         */
-        _selecton: function (e) {
-            var suggestionsMenu = this.querySelector('paper-menu');
-            if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                var selectedItem = e.currentTarget;
-                var index = Number(suggestionsMenu.indexOf(selectedItem));
-                suggestionsMenu.select(index);
-                this._paperInputRef.$.input.focus();
-            }
-            else {
-                console.log("suggestionsMenu not defined");
-            }
-        },
+		/**
+		 * Callback on mouseover event on paper-item
+		 */
+		_selecton: function (e) {
+			var suggestionsMenu = this.querySelector('paper-menu');
+			var selectedItem = e.currentTarget;
+			var index = Number(suggestionsMenu.indexOf(selectedItem));
+			suggestionsMenu.select(index);
+			this._paperInputRef.$.input.focus();
+		},
 
-        /**
-         * Callback on click event on paper-item
-         */
-        _select: function (e) {
-            var suggestionsMenu = this.querySelector('paper-menu');
-            if (suggestionsMenu && typeof(suggestionsMenu) != 'undefined') {
-                var selectedItem = e.currentTarget;
-                var index = Number(suggestionsMenu.indexOf(selectedItem));
-                this._ntiRef.inputValue = this._suggestions[index];
-                this._suggestions = [];
-                this.fire('nts-item-confirmed', e.target);
-
-                if (window.frameElement) {
-                    window.frameElement.style.display = 'none';
-                }
-
-                e.stopPropagation();
-            }
-            else {
-                console.log("suggestionsMenu not defined");
-            }
-        }
-    });
+		/**
+		 * Callback on click event on paper-item
+		 */
+		_select: function (e) {
+			var suggestionsMenu = this.querySelector('paper-menu');
+			var selectedItem = e.currentTarget;
+			var index = Number(suggestionsMenu.indexOf(selectedItem));
+			this._ntiRef.value = this._suggestions[index];
+			this._suggestions = [];
+			this._ntiRef.fire('suggestion-confirm', e.target);
+			window.frameElement.style.display = 'none';
+			e.stopPropagation();
+		}
+	});
 </script>

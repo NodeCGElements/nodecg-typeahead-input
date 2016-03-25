@@ -1,0 +1,37 @@
+{
+  "name": "nodecg-typeahead-input",
+  "version": "0.1.2",
+  "description": "A typeahead that works in NodeCG dashboard panels.",
+  "main": "nodecg-typeahead-input.html",
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^2.3.0",
+    "eslint-config-xo": "^0.12.0",
+    "eslint-plugin-html": "^1.4.0",
+    "polylint": "^2.10.1"
+  },
+  "scripts": {
+    "test": "npm run static",
+    "static": "npm run static:js && npm run static:polymer",
+    "static:polymer": "polylint -i nodecg-typeahead-input.html nodecg-typeahead-suggestions.html",
+    "static:js": "eslint -c .eslintrc *.html test/**/*.html demo/**/*.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://lange@github.com/NodeCGElements/nodecg-typeahead-input.git"
+  },
+  "keywords": [
+    "nodecg",
+    "typeahead",
+    "input",
+    "dashboard",
+    "polymer",
+    "element"
+  ],
+  "author": "Alex Van Camp",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/NodeCGElements/nodecg-typeahead-input/issues"
+  },
+  "homepage": "https://github.com/NodeCGElements/nodecg-typeahead-input#readme"
+}

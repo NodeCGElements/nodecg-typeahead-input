@@ -5,12 +5,14 @@
     "Tianxiang Zhang <cenhiangapply@gmail.com>",
     "Alex Van Camp <email@alexvan.camp>"
   ],
-  "description": "nodecg-typeahead-input is an element providing typeahead feature for input.",
+  "description": "A typeahead that works in NodeCG dashboard panels.",
   "keywords": [
-    "web-component",
-    "web-components",
+    "nodecg",
+    "typeahead",
+    "input",
+    "dashboard",
     "polymer",
-    "seed"
+    "element"
   ],
   "main": "nodecg-typeahead-input.html",
   "license": "MIT",
@@ -24,7 +26,8 @@
     "paper-input": "PolymerElements/paper-input#^1.1.1",
     "paper-menu": "PolymerElements/paper-menu#^1.2.0",
     "paper-item": "PolymerElements/paper-item#^1.1.2",
-    "iron-ajax": "PolymerElements/iron-ajax#^1.1.1"
+    "paper-material": "PolymerElements/paper-material#^1.0.6",
+    "nodecg-replicant": "NodeCGElements/nodecg-replicant#^0.5.4"
   },
   "devDependencies": {
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0"
