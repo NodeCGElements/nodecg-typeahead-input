@@ -154,7 +154,7 @@ If you want to save it in bower.json file, remember to add flag --save
 				_suggestions: {
 					type: Array,
 					value: function () {
-						return []
+						return [];
 					},
 					observer: '_suggestionsChanged'
 				},
@@ -257,9 +257,9 @@ If you want to save it in bower.json file, remember to add flag --save
 					return candidates.find(function (candidate) {
 						return candidate[this.suggestionField] === newVal;
 					}.bind(this));
-				} else {
-					return newVal;
 				}
+
+				return newVal;
 			},
 
 			_suggestionsChanged: function (newVal) {
