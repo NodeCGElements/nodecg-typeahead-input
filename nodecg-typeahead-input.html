@@ -32,27 +32,30 @@ If you want to save it in bower.json file, remember to add flag --save
 			}
 		</style>
 
-		<nodecg-replicant replicant-name="[[replicantName]]" replicant-bundle="[[replicantBundle]]"
-						  value="{{candidates}}"></nodecg-replicant>
+		<nodecg-replicant
+			replicant-name="[[replicantName]]"
+			replicant-bundle="[[replicantBundle]]"
+		  	value="{{candidates}}"></nodecg-replicant>
 
 		<div style="position:relative;">
-			<paper-input id="input"
-						 value="{{value}}"
-						 on-keyup="_keyup"
-						 on-keydown="_keydown"
-						 label="{{label}}"
-						 always-float-label="{{alwaysFloatLabel}}"
-						 autofocus="{{autofocus}}"
-						 char-counter="{{charCounter}}"
-						 disabled="{{disabled}}"
-						 error-message="{{errorMessage}}"
-						 maxlength="{{maxlength}}"
-						 minlength="{{minlength}}"
-						 no-label-float="{{noLabelFloat}}"
-						 readonly="{{readonly}}"
-						 required="{{required}}"
-						 auto-validate="{{autoValidate}}"
-						 pattern="{{pattern}}"
+			<paper-input
+				id="input"
+				value="{{value}}"
+				on-keyup="_keyup"
+				on-keydown="_keydown"
+				label="{{label}}"
+				always-float-label="{{alwaysFloatLabel}}"
+				autofocus="{{autofocus}}"
+				char-counter="{{charCounter}}"
+				disabled="{{disabled}}"
+				error-message="{{errorMessage}}"
+				maxlength="{{maxlength}}"
+				minlength="{{minlength}}"
+				no-label-float="{{noLabelFloat}}"
+				readonly="{{readonly}}"
+				required="{{required}}"
+				auto-validate="{{autoValidate}}"
+				pattern="{{pattern}}"
 			></paper-input>
 		</div>
 	</template>
@@ -60,7 +63,7 @@ If you want to save it in bower.json file, remember to add flag --save
 
 <script>
 (function () {
-	var ESCAPE_REGEX = /[-\/\\^$*+?.()|[\]{}]/g;
+	var ESCAPE_REGEX = /[-/\\^$*+?.()|[\]{}]/g;
 	var IFRAME_ID = 'nodecg-typeahead-suggestions';
 
 	// Build the iframe that will house the suggestions list.
@@ -233,7 +236,10 @@ If you want to save it in bower.json file, remember to add flag --save
 				/**
 				 * Bind this to the <paper-input>'s pattern property.
 				 */
-				pattern: String
+				pattern: String,
+
+				replicantName: String,
+				replicantBundle: String
 			},
 
 			ready: function () {
