@@ -8,9 +8,13 @@
     "eslint": "^3.19.0",
     "eslint-config-xo": "^0.18.1",
     "eslint-plugin-html": "^2.0.1",
+    "standard-version": "^4.0.0"
   },
   "scripts": {
-    "test": "eslint **/*.js **/*.html"
+    "test": "eslint **/*.js **/*.html",
+    "prerelease": "npm t",
+    "release": "standard-version",
+    "postrelease": "git push --follow-tags"
   },
   "repository": {
     "type": "git",
