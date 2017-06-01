@@ -1,20 +1,24 @@
 {
-	"root": true,
-	"extends": "xo/browser",
-	"plugins": [
-		"html"
-	],
-	"globals": {
-		"Polymer": true
-	},
-	"rules": {
-		"new-cap": [
-			2,
-			{
-				"capIsNewExceptions": [
-					"Polymer"
-				]
-			}
+  "root": true,
+  "extends": "xo/esnext",
+  "env": {
+	"node": false,
+	"browser": true
+  },
+  "plugins": [
+	"html"
+  ],
+  "globals": {
+	"Polymer": true
+  },
+  "rules": {
+	"new-cap": [
+	  2,
+	  {
+		"capIsNewExceptions": [
+		  "Polymer"
 		]
-	}
+	  }
+	]
+  }
 }

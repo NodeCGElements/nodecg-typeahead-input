@@ -1,5 +1,4 @@
-<link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../vaadin-combo-box/vaadin-combo-box.html">
 <link rel="import" href="../nodecg-replicant/nodecg-replicant.html">
 
 <!--
@@ -30,370 +29,54 @@ If you want to save it in bower.json file, remember to add flag --save
 				display: block;
 				box-sizing: border-box;
 			}
+
+			#combobox {
+				@apply(--nodecg-typeahead-combobox);
+			}
 		</style>
 
 		<nodecg-replicant
 			replicant-name="[[replicantName]]"
 			replicant-bundle="[[replicantBundle]]"
-		  	value="{{candidates}}"></nodecg-replicant>
+		  	value="{{items}}"></nodecg-replicant>
 
-		<div style="position:relative;">
-			<paper-input
-				id="input"
-				value="{{value}}"
-				on-keyup="_keyup"
-				on-keydown="_keydown"
-				label="{{label}}"
-				always-float-label="{{alwaysFloatLabel}}"
-				autofocus="{{autofocus}}"
-				char-counter="{{charCounter}}"
-				disabled="{{disabled}}"
-				error-message="{{errorMessage}}"
-				maxlength="{{maxlength}}"
-				minlength="{{minlength}}"
-				no-label-float="{{noLabelFloat}}"
-				readonly="{{readonly}}"
-				required="{{required}}"
-				auto-validate="{{autoValidate}}"
-				pattern="{{pattern}}"
-			></paper-input>
-		</div>
+		<vaadin-combo-box
+			id="combobox"
+			allow-custom-value="{{allowCustomValue}}"
+			allowed-pattern="{{allowedPattern}}"
+			always-float-label="{{alwaysFloatLabel}}"
+			autofocus="{{autofocus}}"
+			auto-validate="{{autoValidate}}"
+			disabled="{{disabled}}"
+			error-message="{{errorMessage}}"
+			filter="{{filter}}"
+			filtered-items="{{filteredItems}}"
+			focused="{{focused}}"
+			has-value="{{hasValue}}"
+			input-element="{{inputElement}}"
+			inputmode="{{inputmode}}"
+			invalid="{{invalid}}"
+			item-label-path="{{itemLabelPath}}"
+			items="{{items}}"
+			item-value-path="{{itemValuePath}}"
+			label="{{label}}"
+			loading="{{loading}}"
+			name="{{name}}"
+			no-label-float="{{noLabelFloat}}"
+			opened="{{opened}}"
+			pattern="{{pattern}}"
+			placeholder="{{placeholder}}"
+			prevent-invalid-input="{{preventInvalidInput}}"
+			readonly="{{readonly}}"
+			required="{{required}}"
+			selected-item="{{selectedItem}}"
+			size="{{size}}"
+			validator="{{validator}}"
+			validatorType="{{validatorType}}"
+			value="{{value}}"></vaadin-combo-box>
+
+		<slot id="itemTemplateSlot"></slot>
 	</template>
+
+	<script src="nodecg-typeahead-input.js"></script>
 </dom-module>
-
-<script>
-(function () {
-	var ESCAPE_REGEX = /[-/\\^$*+?.()|[\]{}]/g;
-	var IFRAME_ID = 'nodecg-typeahead-suggestions';
-
-	// Build the iframe that will house the suggestions list.
-	// Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
-	// can serve all the nodecg-typeahead-input elements on the page.
-	var iframe = window.top.document.getElementById(IFRAME_ID);
-	if (!iframe) {
-		iframe = document.createElement('iframe');
-		iframe.id = IFRAME_ID;
-		iframe.height = 400;
-
-		// Yeah, I can't justify this. It's stupid as hell. You got me.
-		iframe.src = window.location.pathname.split('/').slice(0, 3).join('/') +
-				'/components/nodecg-typeahead-input/suggestions_iframe.html';
-
-		iframe.style.position = 'absolute';
-		iframe.setAttribute('frameborder', '0');
-
-		window.top.document.body.appendChild(iframe);
-	}
-
-	// Don't bootstrap this element until the iframe has finished loading.
-	if (iframe.contentWindow.suggestionsReady) {
-		bootstrap();
-	} else {
-		iframe.contentWindow.addEventListener('suggestionsReady', bootstrap);
-	}
-
-	function bootstrap() {
-		var suggestionsElement = iframe.contentDocument.querySelector('nodecg-typeahead-suggestions');
-		var suggestionsMenu = iframe.contentDocument.querySelector('paper-menu');
-
-		Polymer({
-			is: 'nodecg-typeahead-input',
-
-			/**
-			 * Fired when an item in the suggestion list is selected, either by up and down key or hover by mouse.
-			 *
-			 * @event suggestion-select
-			 */
-
-			/**
-			 * Fired when an item in the suggestion list is confirmed, either by hit enter key where element selected
-			 * or clicked on the element directly by mouse.
-			 *
-			 * @event suggestion-confirm
-			 */
-
-			properties: {
-
-				/**
-				 * The label that will show up as the label for tags input. It not specified, no label will show up.
-				 */
-				label: {
-					type: String,
-					value: ''
-				},
-
-				/**
-				 * The placeholder for the paper-input element.
-				 */
-				placeholder: {
-					type: String,
-					value: 'Please enter values here'
-				},
-
-				/**
-				 * The candidates from local variable.
-				 */
-				candidates: {
-					type: Array
-				},
-
-				selectedCandidate: {
-					type: Object,
-					computed: '_computeSelectedCandidate(value, candidates)',
-					notify: true
-				},
-
-				/**
-				 * If the items in the suggestions Replicant are objects, this is the field that nodecg-typeahead-input
-				 * should look at to determine if an item matches.
-				 */
-				suggestionField: {
-					type: String
-				},
-
-				/**
-				 * Internal variable holding all matched suggestions.
-				 */
-				_suggestions: {
-					type: Array,
-					value: function () {
-						return [];
-					},
-					observer: '_suggestionsChanged'
-				},
-
-				/**
-				 * Maximum number of suggestions to show up in typeahead.
-				 */
-				maxSuggestions: {
-					type: Number,
-					value: 5
-				},
-
-				/**
-				 * Input value.
-				 */
-				value: {
-					type: String,
-					notify: true
-				},
-
-				/**
-				 * Bind this to the <paper-input>'s alwaysFloatLabel property.
-				 */
-				alwaysFloatLabel: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s autofocus property.
-				 */
-				autofocus: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s charCounter property.
-				 */
-				charCounter: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s disabled property.
-				 */
-				disabled: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s errorMessage property.
-				 */
-				errorMessage: String,
-
-				/**
-				 * Bind this to the <paper-input>'s maxlength property.
-				 */
-				maxlength: Number,
-
-				/**
-				 * Bind this to the <paper-input>'s minlength property.
-				 */
-				minlength: Number,
-
-				/**
-				 * Bind this to the <paper-input>'s noLabelFloat property.
-				 */
-				noLabelFloat: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s readonly property.
-				 */
-				readonly: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s required property.
-				 */
-				required: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s autoValidate property.
-				 */
-				autoValidate: Boolean,
-
-				/**
-				 * Bind this to the <paper-input>'s pattern property.
-				 */
-				pattern: String,
-
-				replicantName: String,
-				replicantBundle: String
-			},
-
-			ready: function () {
-				// This appears to be a hacky way of disabling autocomplete?
-				// https://code.google.com/p/chromium/issues/detail?id=468153
-				var input = this.querySelector('paper-input');
-				input.$.input.autocomplete = 'address-level4';
-
-				// Clear suggestions when the dashboard or a panel is clicked.
-				window.top.document.addEventListener('click', function () {
-					this._suggestions = [];
-				}.bind(this));
-
-				window.top.document.addEventListener('panelClick', function () {
-					this._suggestions = [];
-				}.bind(this));
-			},
-
-			_computeSelectedCandidate: function (newVal, candidates) {
-				if (this.suggestionField) {
-					return candidates.find(function (candidate) {
-						return candidate[this.suggestionField] === newVal;
-					}.bind(this));
-				}
-
-				return newVal;
-			},
-
-			_suggestionsChanged: function (newVal) {
-				// If we have suggestions, that must mean we want to show them.
-				// So, we need to figure out where to place the suggestions iframe.
-				if (newVal.length > 0) {
-					var panelBoundingRect = window.frameElement.getBoundingClientRect();
-					var thisBoundingRect = this.getBoundingClientRect();
-					var x = panelBoundingRect.left + thisBoundingRect.left;
-					var y = panelBoundingRect.bottom - (panelBoundingRect.height - thisBoundingRect.bottom);
-					iframe.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-					iframe.style.display = 'block';
-					suggestionsElement._ntiRef = this;
-					suggestionsElement._paperInputRef = this.querySelector('paper-input');
-				} else {
-					iframe.style.display = 'none';
-				}
-
-				suggestionsElement._suggestions = newVal;
-			},
-
-			/**
-			 * Callback for keydown event
-			 *
-			 * @param {Object} e - Event object.
-			 */
-			// TODO: I don't know why this is here.
-			_keydown: function (e) {
-				// Down and up arrow keys
-				if (e.which === 40 || e.which === 38) {
-					e.preventDefault();
-				}
-			},
-
-			/**
-			 * Callback for keyup event
-			 *
-			 * @param {Object} e - Event object.
-			 */
-			_keyup: function (e) {
-				var index = 0;
-				var selectedItem;
-				var input = this.$.input;
-
-				if (this._suggestions.length > 0) {
-					selectedItem = suggestionsMenu.focusedItem;
-				}
-
-				switch (e.which) {
-					// Down arrow key
-					case 40: {
-						if (selectedItem !== undefined) {
-							index = Number(suggestionsMenu.indexOf(selectedItem));
-							index = Math.min(index + 1, this._suggestions.length - 1);
-						}
-						suggestionsMenu.select(index);
-						input.$.input.focus();
-						break;
-					}
-
-					// Up arrow key
-					case 38: {
-						if (selectedItem !== undefined) {
-							index = Number(suggestionsMenu.indexOf(selectedItem));
-							index = Math.max(index - 1, 0);
-							suggestionsMenu.select(index);
-						}
-						input.$.input.focus();
-						break;
-					}
-
-					// Enter key
-					case 13: {
-						if (this._suggestions.length > 0) {
-							if (selectedItem !== undefined) {
-								index = Number(suggestionsMenu.indexOf(selectedItem));
-								if (this._suggestions[index]) {
-									this.value = this._suggestions[index];
-								}
-								this._suggestions = [];
-								this.fire('suggestion-confirm', selectedItem);
-							}
-						}
-						break;
-					}
-
-					default: {
-						if (this._suggestions.length > 0) {
-							suggestionsMenu.select(-1);
-						}
-						this._search(this.value.trim());
-					}
-				}
-			},
-
-			_search: function (term) {
-				if (term === '') {
-					this._suggestions = [];
-					return;
-				}
-
-				// Regex escape: http://stackoverflow.com/a/3561711/3903335
-				var escaped = term.toLowerCase().replace(ESCAPE_REGEX, '\\$&');
-				var patt = new RegExp(escaped);
-				var matched = [];
-				var i;
-
-				// Look for matches in candidates
-				if (this.candidates !== undefined) {
-					for (i = 0; i < this.candidates.length; i++) {
-						if (matched.length === this.maxSuggestions) {
-							break;
-						}
-
-						var candidateStr = this.candidates[i];
-						if (this.suggestionField) {
-							candidateStr = candidateStr[this.suggestionField];
-						}
-
-						if (patt.test(candidateStr.toLowerCase())) {
-							matched.push(candidateStr);
-						}
-					}
-				}
-
-				this._suggestions = matched;
-			}
-		});
-	}
-})();
-</script>

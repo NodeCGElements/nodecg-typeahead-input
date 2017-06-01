@@ -11,10 +11,7 @@
     "polylint": "^2.10.4"
   },
   "scripts": {
-    "test": "npm run static",
-    "static": "npm run static:js && npm run static:polymer",
-    "static:polymer": "polylint -i nodecg-typeahead-input.html nodecg-typeahead-suggestions.html",
-    "static:js": "eslint -c .eslintrc *.html test/**/*.html demo/**/*.html"
+    "test": "eslint **/*.js **/*.html"
   },
   "repository": {
     "type": "git",
