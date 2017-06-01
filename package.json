@@ -1,6 +1,6 @@
 {
   "name": "nodecg-typeahead-input",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "A typeahead that works in NodeCG dashboard panels.",
   "main": "nodecg-typeahead-input.html",
   "dependencies": {},
