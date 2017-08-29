@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+	<title>nodecg-typeahead-input test</title>
+
+	<script src="../../webcomponentsjs/webcomponents-loader.js"></script>
+	<script src="../../web-component-tester/browser.js"></script>
+	<script src="../../mock-nodecg/dist/mock-nodecg.js"></script>
+	<script>
+		/* global MockNodeCG */
+		window.nodecg = new MockNodeCG({bundleName: 'foo-bundle'});
+		window.__nodecg__ = true;
+	</script>
+
+	<link rel="import" href="../../polymer/lib/utils/flush.html">
+	<link rel="import" href="../nodecg-typeahead-input.html">
+</head>
+<body>
+	<test-fixture id="nodecg-typeahead-input">
+		<template>
+			<nodecg-typeahead-input replicant-name="games"></nodecg-typeahead-input>
+		</template>
+	</test-fixture>
+
+	<test-fixture id="iframe nodecg-typeahead-input">
+		<template>
+			<iframe src="fixtures/iframe_typeahead.html"></iframe>
+		</template>
+	</test-fixture>
+
+	<script>
+		/* eslint-env mocha */
+		/* global fixture assert NodecgTypeaheadInput */
+
+		function afterNextRenderPromise() {
+			return new Promise(resolve => {
+				Polymer.RenderStatus.afterNextRender(this, () => {
+					resolve();
+				});
+			});
+		}
+
+		suite('nodecg-typeahead-input', () => {
+			let typeahead;
+
+			setup(done => {
+				typeahead = fixture('nodecg-typeahead-input');
+				if (NodecgTypeaheadInput.bootstrapped) {
+					doTheDangThing();
+				} else {
+					window.addEventListener('nodecg-typeahead-input-bootstrapped', () => {
+						doTheDangThing();
+					});
+				}
+
+				function doTheDangThing() {
+					afterNextRenderPromise().then(() => {
+						const games = typeahead.shadowRoot.querySelector('nodecg-replicant').replicant;
+						games.value = [
+							'Team Fortress 2',
+							'Super Mario 64',
+							'Starcraft',
+							'The Dig',
+							'RAMA'
+						];
+						games.emit('change', games.value);
+						done();
+					});
+				}
+			});
+
+			test('does the dang thing', () => {
+				assert(true);
+			});
+		});
+	</script>
+</body>
+</html>

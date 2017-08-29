@@ -1,0 +1,37 @@
+{
+	"plugins": {
+		"local": {
+			"browsers": [
+				"chrome"
+			]
+		},
+		"sauce": {
+			"disabled": true,
+			"browsers": [{
+				"browserName": "chrome",
+				"platform": "Windows 10",
+				"version": "latest"
+			}, {
+				"browserName": "safari",
+				"platform": "macOS 10.12",
+				"version": "latest"
+			}]
+		},
+		"istanbul": {
+			"dir": "coverage",
+			"reporters": [
+				"lcov",
+				"html",
+				"text"
+			],
+			"include": [
+				"**/nodecg-typeahead-input.html",
+				"**/nodecg-typeahead-input.js"
+			],
+			"exclude": [
+				"/bower_components/**/*",
+				"/test/**/*"
+			]
+		}
+	}
+}

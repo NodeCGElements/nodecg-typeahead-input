@@ -1,23 +1,61 @@
 (function () {
 	'use strict';
 
+	const TARGET_WINDOW = findNodeCGWindowOrTopWindow();
+	const TARGET_DOCUMENT = TARGET_WINDOW.document;
+	const CURRENT_WINDOW_IS_TARGET_WINDOW = TARGET_WINDOW === window;
+
+	function findNodeCGWindowOrTopWindow() {
+		if (window.__nodecg__) {
+			return window;
+		}
+
+		try {
+			let parent = window.parent;
+			while (parent && parent !== parent.parent) {
+				if (parent.__nodecg__) {
+					return parent;
+				}
+
+				parent = parent.parent;
+			}
+
+			return parent;
+		} catch (e) {
+			return window;
+		}
+	}
+
 	// Don't use the iframe for suggestions if we're not in an iframe.
-	const TOP_WINDOW = window.top;
-	const TOP_DOCUMENT = window.top.document;
-	const USE_IFRAME = TOP_WINDOW !== window;
+	const USE_IFRAME = !CURRENT_WINDOW_IS_TARGET_WINDOW;
 	const IFRAME_ID = 'nodecg-typeahead-suggestions';
 	let HEADER_HEIGHT;
+
+	const FORWARDED_METHODS = [
+		'blur',
+		'cancel',
+		'close',
+		'focus',
+		'hasValidator',
+		'modelForElement',
+		'open',
+		'stamp',
+		'templatize',
+		'validate'
+	];
 
 	let pages;
 	let iframe;
 	if (USE_IFRAME) {
-		HEADER_HEIGHT = TOP_DOCUMENT.getElementById('header').getBoundingClientRect().height;
-		pages = TOP_DOCUMENT.getElementById('pages');
+		const dashboard = TARGET_DOCUMENT.querySelector('ncg-dashboard');
+		const header = dashboard ? dashboard.shadowRoot.querySelector('#header') : null;
+		HEADER_HEIGHT = header ? header.getBoundingClientRect().height : 0;
+		pages = dashboard.shadowRoot.getElementById('pages');
 
 		// Build the iframe that will house the suggestions list.
 		// Because we hide the suggestions list when the user clicks away, we know that just one suggestions iframe
 		// can serve all the nodecg-typeahead-input elements on the page.
-		iframe = TOP_DOCUMENT.getElementById(IFRAME_ID);
+		iframe = TARGET_DOCUMENT.getElementById(IFRAME_ID);
 		if (!iframe) {
 			iframe = document.createElement('iframe');
 			iframe.id = IFRAME_ID;
@@ -29,7 +67,7 @@
 			iframe.style.position = 'absolute';
 			iframe.setAttribute('frameborder', '0');
 
-			TOP_DOCUMENT.body.appendChild(iframe);
+			TARGET_DOCUMENT.body.appendChild(iframe);
 		}
 
 		// Don't bootstrap this element until the iframe has finished loading.
@@ -43,92 +81,85 @@
 	}
 
 	function bootstrap() {
-		Polymer({
-			is: 'nodecg-typeahead-input',
+		class NodecgTypeaheadInput extends Polymer.Element {
+			static get is() {
+				return 'nodecg-typeahead-input';
+			}
 
-			properties: {
-				// Properties bound to vaadin-combo-box
-				allowCustomValue: Boolean,
-				allowedPattern: String,
-				alwaysFloatLabel: Boolean,
-				autofocus: Boolean,
-				autoValidate: Boolean,
-				disabled: Boolean,
-				errorMessage: String,
-				filter: {
-					type: String,
-					notify: true
-				},
-				filteredItems: Array,
-				focused: {
-					type: Boolean,
-					notify: true
-				},
-				hasValue: {
-					type: Boolean
-				},
-				inputElement: {
-					type: HTMLElement
-				},
-				inputmode: String,
-				invalid: {
-					type: Boolean,
-					notify: true
-				},
-				itemLabelPath: String,
-				items: Array,
-				itemValuePath: String,
-				label: String,
-				loading: Boolean,
-				name: String,
-				noLabelFloat: Boolean,
-				opened: {
-					type: Boolean,
-					notify: true
-				},
-				pattern: String,
-				placeholder: String,
-				preventInvalidInput: Boolean,
-				readonly: Boolean,
-				required: Boolean,
-				selectedItem: {
-					type: Object,
-					notify: true
-				},
-				size: Number,
-				validator: String,
-				validatorType: String,
-				value: {
-					type: String,
-					notify: true
-				},
+			static get properties() {
+				return {
+					// Properties bound to vaadin-combo-box
+					allowCustomValue: Boolean,
+					allowedPattern: String,
+					alwaysFloatLabel: Boolean,
+					autofocus: Boolean,
+					autoValidate: Boolean,
+					disabled: Boolean,
+					errorMessage: String,
+					filter: {
+						type: String,
+						notify: true
+					},
+					filteredItems: Array,
+					focused: {
+						type: Boolean,
+						notify: true
+					},
+					hasValue: {
+						type: Boolean
+					},
+					inputElement: {
+						type: HTMLElement
+					},
+					inputmode: String,
+					invalid: {
+						type: Boolean,
+						notify: true
+					},
+					itemLabelPath: String,
+					items: Array,
+					itemValuePath: String,
+					label: String,
+					loading: Boolean,
+					name: String,
+					noLabelFloat: Boolean,
+					opened: {
+						type: Boolean,
+						notify: true
+					},
+					pattern: String,
+					placeholder: String,
+					preventInvalidInput: Boolean,
+					readonly: Boolean,
+					required: Boolean,
+					selectedItem: {
+						type: Object,
+						notify: true
+					},
+					size: Number,
+					validator: String,
+					validatorType: String,
+					value: {
+						type: String,
+						notify: true
+					},
 
-				verticalOffset: {
-					type: Number,
-					value: 0
-				},
+					verticalOffset: {
+						type: Number,
+						value: 0
+					},
 
-				// Our custom properties
-				replicantName: String,
-				replicantBundle: String
-			},
+					// Our custom properties
+					replicantName: String,
+					replicantBundle: String
+				};
+			}
 
 			ready() {
-				const forwardedMethods = [
-					'blur',
-					'cancel',
-					'close',
-					'focus',
-					'hasValidator',
-					'modelForElement',
-					'open',
-					'stamp',
-					'templatize',
-					'validate'
-				];
+				super.ready();
 
 				// Forward method calls to the combobox
-				forwardedMethods.forEach(methodName => {
+				FORWARDED_METHODS.forEach(methodName => {
 					this[methodName] = function (...args) {
 						return this.$.combobox[methodName](...args);
 					};
@@ -147,7 +178,7 @@
 				if (USE_IFRAME) {
 					this._bootstrapIframe();
 				}
-			},
+			}
 
 			_bootstrapIframe() {
 				const holder = iframe.contentWindow.document.getElementById('holder');
@@ -163,9 +194,14 @@
 					return originalOverlayMoveTo(holder);
 				};
 
-				this.positionTarget = this.$.combobox.querySelector('.underline');
+				this.positionTarget = this.$.combobox.$.inputContainer.shadowRoot.querySelector('.underline');
 
 				iframe.style.pointerEvents = 'none';
+
+				// 2017-08-26: On Firefox, just setting pointerEvents to none is not enough.
+				// We also have to set display: none to make the iframe not intercept clicks when we don't want it to.
+				iframe.style.display = 'none';
+
 				this.$.combobox.addEventListener('vaadin-dropdown-opened', () => {
 					// Show the iframe
 					iframe.style.display = 'block';
@@ -183,7 +219,7 @@
 				});
 
 				this._overlay = this.$.combobox.$.overlay;
-			},
+			}
 
 			_verticalOffset(overlayRect, targetRect) {
 				if (this._alignedAbove) {
@@ -193,14 +229,14 @@
 				}
 
 				return targetRect.height + this.verticalOffset;
-			},
+			}
 
 			_isPositionFixed(element) {
 				const offsetParent = element.offsetParent;
 
 				return window.getComputedStyle(this._unwrapIfNeeded(element)).position === 'fixed' ||
 					(offsetParent && this._isPositionFixed(offsetParent));
-			},
+			}
 
 			_maxHeight(targetRect) {
 				const margin = 8;
@@ -210,17 +246,17 @@
 				if (this._alignedAbove) {
 					retValue = this._calcAbsBoundingRect(this).top - HEADER_HEIGHT - margin;
 				} else {
-					retValue = TOP_WINDOW.innerHeight - targetRect.bottom - margin;
+					retValue = TARGET_WINDOW.innerHeight - targetRect.bottom - margin;
 				}
 
 				// Clamp minimum
 				retValue = Math.max(retValue, minHeight);
 
 				// Clamp maximum
-				retValue = Math.min(retValue, TOP_WINDOW.innerHeight * 0.65); // 65vh
+				retValue = Math.min(retValue, TARGET_WINDOW.innerHeight * 0.65); // 65vh
 
 				return `${retValue}px`;
-			},
+			}
 
 			_setPosition() {
 				const targetRect = this._calcAbsBoundingRect(this.positionTarget);
@@ -237,22 +273,22 @@
 				iframe._translateY = targetRect.top - iframeRect.top + (iframe._translateY || 0) +
 					this._verticalOffset(iframeRect, targetRect);
 
-				const _devicePixelRatio = TOP_WINDOW.devicePixelRatio || 1;
+				const _devicePixelRatio = TARGET_WINDOW.devicePixelRatio || 1;
 				iframe._translateX = Math.round(iframe._translateX * _devicePixelRatio) / _devicePixelRatio;
 				iframe._translateY = Math.round(iframe._translateY * _devicePixelRatio) / _devicePixelRatio;
 				iframe.style.transform = `translate(${iframe._translateX}px, ${iframe._translateY}px)`;
 
 				iframe.style.width = `${targetRect.width}px`;
-			},
+			}
 
 			_shouldAlignAbove() {
 				const targetRect = this._calcAbsBoundingRect(this.positionTarget);
 
-				// ScrollTop can only be negative in certian cases, such as mobile touch over-dragging
-				const divisor = TOP_WINDOW.innerHeight - targetRect.bottom - Math.min(pages.scrollTop, 0);
-				const spaceBelow = divisor / TOP_WINDOW.innerHeight;
+				// ScrollTop can only be negative in certain cases, such as mobile touch over-dragging
+				const divisor = TARGET_WINDOW.innerHeight - targetRect.bottom - Math.min(pages.scrollTop, 0);
+				const spaceBelow = divisor / TARGET_WINDOW.innerHeight;
 				return spaceBelow < 0.30;
-			},
+			}
 
 			_calcAbsBoundingRect(target) {
 				const targetRect = target.getBoundingClientRect();
@@ -266,6 +302,13 @@
 					height: targetRect.height
 				};
 			}
+		}
+
+		window.NodecgTypeaheadInput = NodecgTypeaheadInput;
+		customElements.define(NodecgTypeaheadInput.is, NodecgTypeaheadInput);
+		Polymer.RenderStatus.afterNextRender(this, () => {
+			NodecgTypeaheadInput.bootstrapped = true;
+			window.dispatchEvent(new CustomEvent('nodecg-typeahead-input-bootstrapped'));
 		});
 	}
 })();

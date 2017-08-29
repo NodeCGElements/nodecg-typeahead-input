@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+	<title>iframe nodecg-typeahead-input</title>
+
+	<script src="../../../webcomponentsjs/webcomponents-loader.js"></script>
+	<script src="../../../mock-nodecg/dist/mock-nodecg.js"></script>
+	<script>
+		/* global MockNodeCG */
+		window.nodecg = new MockNodeCG({bundleName: 'foo-bundle'});
+	</script>
+
+	<link rel="import" href="../../nodecg-replicant-input.html">
+</head>
+<body>
+	<nodecg-typeahead-input replicant-name="games"></nodecg-typeahead-input>
+</body>
+</html>

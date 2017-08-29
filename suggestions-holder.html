@@ -8,24 +8,29 @@
 				position: absolute;
 				width: 100%;
 				height: 100%;
-				font-family: Roboto;
-			}
-
-			:host ::content vaadin-combo-box-overlay #scroller {
-				max-height: none!important;
+				font-family: Roboto, sans-serif;
+				--vaadin-combo-box-overlay-max-height: none;
 			}
 		</style>
+
 		<slot></slot>
 	</template>
 
 	<script>
-		Polymer({
-			is: 'suggestions-holder',
+		(function () {
+			class SuggestionsHolder extends Polymer.Element {
+				static get is() {
+					return 'suggestions-holder';
+				}
 
-			ready() {
-				window.dispatchEvent(new CustomEvent('suggestionsReady'));
-				window.suggestionsReady = true;
+				ready() {
+					super.ready();
+					window.dispatchEvent(new CustomEvent('suggestionsReady'));
+					window.suggestionsReady = true;
+				}
 			}
-		});
+
+			customElements.define(SuggestionsHolder.is, SuggestionsHolder);
+		})();
 	</script>
 </dom-module>
