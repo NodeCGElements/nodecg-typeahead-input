@@ -38,7 +38,7 @@ If you want to save it in bower.json file, remember to add flag --save
 		<nodecg-replicant
 			replicant-name="[[replicantName]]"
 			replicant-bundle="[[replicantBundle]]"
-		  	value="{{items}}"></nodecg-replicant>
+			value="{{items}}"></nodecg-replicant>
 
 		<vaadin-combo-box
 			id="combobox"
@@ -73,9 +73,9 @@ If you want to save it in bower.json file, remember to add flag --save
 			size="{{size}}"
 			validator="{{validator}}"
 			validatorType="{{validatorType}}"
-			value="{{value}}"></vaadin-combo-box>
-
-		<slot id="itemTemplateSlot"></slot>
+			value="{{value}}">
+			<slot id="itemTemplateSlot"></slot>
+		</vaadin-combo-box>
 	</template>
 
 	<script src="nodecg-typeahead-input.js"></script>

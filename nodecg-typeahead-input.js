@@ -165,12 +165,6 @@
 					};
 				});
 
-				Polymer.dom(this.$.itemTemplateSlot).observeNodes(info => {
-					info.addedNodes.forEach(node => {
-						Polymer.dom(this.$.combobox).appendChild(node);
-					});
-				});
-
 				// A performance hack. The default physical count is a whopping 500,
 				// which really hurts when the overlay items are complex custom templates.
 				this.$.combobox.$.overlay.$.selector.maxPhysicalCount = 40;
