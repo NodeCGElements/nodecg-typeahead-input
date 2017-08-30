@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.1"></a>
+## [2.0.1](https://github.com/NodeCGElements/nodecg-typeahead-input/compare/v2.0.0...v2.0.1) (2017-08-30)
+
+
+### Bug Fixes
+
+* **package:** use vaadin-combo-box v2, instead of v2-beta ([1285785](https://github.com/NodeCGElements/nodecg-typeahead-input/commit/1285785))
+
+
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/NodeCGElements/nodecg-typeahead-input/compare/v1.0.0...v2.0.0) (2017-08-29)
 
