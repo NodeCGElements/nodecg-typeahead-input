@@ -22,7 +22,7 @@
     "/demo/"
   ],
   "dependencies": {
-    "vaadin-combo-box": "vaadin/vaadin-combo-box#v2.0.0-beta1",
+    "vaadin-combo-box": "vaadin/vaadin-combo-box#v2.0.0",
     "nodecg-replicant": "NodeCGElements/nodecg-replicant#^1.0.1"
   },
   "devDependencies": {
