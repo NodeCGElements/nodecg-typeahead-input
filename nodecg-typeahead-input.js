@@ -65,6 +65,7 @@
 				'/bower_components/nodecg-typeahead-input/suggestions_iframe.html';
 
 			iframe.style.position = 'absolute';
+			iframe.style.zIndex = 105;
 			iframe.setAttribute('frameborder', '0');
 
 			TARGET_DOCUMENT.body.appendChild(iframe);
