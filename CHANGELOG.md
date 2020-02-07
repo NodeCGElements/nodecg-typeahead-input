@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.2"></a>
+## [2.0.2](https://github.com/NodeCGElements/nodecg-typeahead-input/compare/v2.0.1...v2.0.2) (2020-02-07)
+
+
+### Bug Fixes
+
+* allow usage in browsers which do not support HTML Imports ([268e621](https://github.com/NodeCGElements/nodecg-typeahead-input/commit/268e621))
+* set a higher z-index on dropdown to allow usage in dialog iframes ([#4](https://github.com/NodeCGElements/nodecg-typeahead-input/issues/4)) ([f418cf8](https://github.com/NodeCGElements/nodecg-typeahead-input/commit/f418cf8))
+
+
+
 <a name="2.0.1"></a>
 ## [2.0.1](https://github.com/NodeCGElements/nodecg-typeahead-input/compare/v2.0.0...v2.0.1) (2017-08-30)
 
