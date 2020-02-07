@@ -2,6 +2,9 @@
 
 An implementation of [vaadin-combo-box](https://www.webcomponents.org/element/vaadin/vaadin-combo-box) designed to work well in NodeCG dashboard panels. Requires Polymer 2.
 
+## Deprecation Notice
+This element is deprecated, and should not be used in new projects. It should continue to work in existing projects for the foreseeable future.
+
 ## Motivation
 NodeCG dashboard panels are iframes. Iframes cannot render any overflow content -- it must be clipped to the bounds of the iframe. This makes UI elements such as typeaheads with dropdowns very difficult.
 
@@ -22,14 +25,6 @@ bower install --save NodeCGElements/nodecg-typeahead-input
 ```
 
 For more detailed documentation, refer to [vaadin-combo-box](https://www.webcomponents.org/element/vaadin/vaadin-combo-box).
-
-## Contributing
-
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request
 
 ## Credits
 
